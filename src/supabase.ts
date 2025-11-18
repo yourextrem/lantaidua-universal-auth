@@ -93,14 +93,33 @@ export async function connectClerkUserToSupabase(
     };
 
     // Upsert user data (insert or update if exists)
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from(tableName)
       .upsert(userData, {
         onConflict: 'clerk_id',
-      });
+      })
+      .select();
 
     if (error) {
+      // Log detailed error for debugging
+      if (typeof window !== 'undefined' && window.console) {
+        console.error('Supabase upsert error:', {
+          error,
+          userData,
+          tableName,
+          clerkId: userData.clerk_id,
+        });
+      }
       throw error;
+    }
+
+    // Log success for debugging
+    if (typeof window !== 'undefined' && window.console) {
+      console.log('✅ User synced to Supabase:', {
+        clerkId: userData.clerk_id,
+        email: userData.email,
+        data,
+      });
     }
   } catch (error) {
     throw new Error(
