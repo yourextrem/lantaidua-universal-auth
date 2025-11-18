@@ -1,6 +1,6 @@
 {
   "name": "lantaidua-universal-auth",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "A universal SSO authentication wrapper for Clerk with Supabase backend integration in Next.js. Clerk handles authentication & user management, Supabase provides database and backend services. Simplify SSO implementation with easy-to-use functions.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
