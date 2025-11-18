@@ -1,7 +1,7 @@
 {
   "name": "lantaidua-universal-auth",
   "version": "1.1.0",
-  "description": "A universal Single Sign-On (SSO) authentication wrapper for Clerk in Next.js applications. Simplify SSO implementation with easy-to-use functions for Google, Microsoft, GitHub, and other providers.",
+  "description": "A universal SSO authentication wrapper for Clerk with Supabase backend integration in Next.js. Clerk handles authentication & user management, Supabase provides database and backend services. Simplify SSO implementation with easy-to-use functions.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
@@ -22,7 +22,10 @@
     "saml",
     "google-auth",
     "microsoft-auth",
-    "github-auth"
+    "github-auth",
+    "supabase",
+    "database",
+    "backend"
   ],
   "author": "Nicholas <amirsafruddin99@gmail.com>",
   "license": "MIT",
@@ -35,7 +38,8 @@
     "url": "https://github.com/yourextrem/lantaidua-universal-auth/issues"
   },
   "dependencies": {
-    "@clerk/clerk-js": "^5.0.0"
+    "@clerk/clerk-js": "^5.0.0",
+    "@supabase/supabase-js": "^2.39.0"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

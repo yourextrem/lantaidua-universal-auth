@@ -1,6 +1,8 @@
 # lantaidua-universal-auth
 
-A universal Single Sign-On (SSO) authentication wrapper for Clerk in Next.js applications. Simplify SSO implementation with easy-to-use functions for Google, Microsoft, GitHub, and other providers.
+A universal Single Sign-On (SSO) authentication wrapper for Clerk with Supabase backend integration in Next.js applications. 
+
+**Clerk** handles authentication & user management, **Supabase** provides the database and backend services. Simplify SSO implementation with easy-to-use functions for Google, Microsoft, GitHub, and other providers.
 
 ## Installation
 
@@ -8,29 +10,55 @@ A universal Single Sign-On (SSO) authentication wrapper for Clerk in Next.js app
 npm install lantaidua-universal-auth
 ```
 
-## Quick Start - SSO
+## Quick Start
+
+### 1. SSO Authentication (Clerk)
 
 ```typescript
 import { authClient } from 'lantaidua-universal-auth';
 
-// 1. Initialize the auth client
+// Initialize Clerk auth client
 await authClient.createAuthClient(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY!, {
   ssoEnabled: true,
   domain: 'your-domain.com',
   isSatellite: true, // For multi-domain SSO
 });
 
-// 2. Sign in with SSO provider
+// Sign in with SSO provider
 await authClient.signInWithSSO('oauth_google', '/dashboard');
 
-// 3. Check SSO session
+// Check SSO session
 const hasSession = await authClient.checkSSOSession();
 
-// 4. Get current user
+// Get current user
 const user = authClient.getSSOUser();
 
-// 5. Sign out
+// Sign out
 await authClient.signOutSSO();
+```
+
+### 2. Database Integration (Supabase)
+
+```typescript
+import { authClient } from 'lantaidua-universal-auth';
+
+// Initialize Supabase client
+const supabase = authClient.createSupabaseClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
+
+// Connect Clerk user to Supabase database
+await authClient.connectClerkUserToSupabase('users');
+
+// Get current user from Supabase
+const userData = await authClient.getCurrentUserFromSupabase('users');
+
+// Use Supabase for database operations
+const { data, error } = await supabase
+  .from('posts')
+  .select('*')
+  .eq('user_id', userData.clerk_id);
 ```
 
 ## SSO Features
@@ -268,19 +296,187 @@ The package detects the environment using:
 2. `NODE_ENV` environment variable
 3. Defaults to `'dev'` if neither is set
 
+## Supabase Integration
+
+### Why Supabase?
+
+- **Clerk**: Handles authentication & user management (SSO, OAuth, etc.)
+- **Supabase**: Provides database, real-time subscriptions, storage, and backend services
+
+### Supabase Methods
+
+#### `authClient.createSupabaseClient(supabaseUrl, supabaseAnonKey, options?)`
+
+Initializes the Supabase client for database operations.
+
+```typescript
+const supabase = authClient.createSupabaseClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  {
+    persistSession: true,
+    autoRefreshToken: true,
+  }
+);
+```
+
+#### `authClient.connectClerkUserToSupabase(tableName?)`
+
+Syncs Clerk user data to Supabase database. Creates or updates user record.
+
+```typescript
+// After user signs in with Clerk
+await authClient.connectClerkUserToSupabase('users');
+```
+
+This will create/update a user record with:
+- `clerk_id` - Clerk user ID
+- `email` - User email
+- `first_name` - User first name
+- `last_name` - User last name
+- `image_url` - User profile image
+- `updated_at` - Last update timestamp
+
+#### `authClient.getCurrentUserFromSupabase(tableName?)`
+
+Gets the current authenticated user's data from Supabase.
+
+```typescript
+const userData = await authClient.getCurrentUserFromSupabase('users');
+```
+
+#### `authClient.getUserFromSupabase(clerkUserId, tableName?)`
+
+Gets user data from Supabase by Clerk user ID.
+
+```typescript
+const userData = await authClient.getUserFromSupabase('user_abc123', 'users');
+```
+
+### Complete Example: Clerk + Supabase
+
+```typescript
+'use client';
+
+import { useEffect, useState } from 'react';
+import { authClient } from 'lantaidua-universal-auth';
+
+export default function Dashboard() {
+  const [user, setUser] = useState(null);
+  const [userData, setUserData] = useState(null);
+
+  useEffect(() => {
+    const init = async () => {
+      try {
+        // 1. Initialize Clerk
+        await authClient.createAuthClient(
+          process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY!,
+          { ssoEnabled: true }
+        );
+
+        // 2. Initialize Supabase
+        const supabase = authClient.createSupabaseClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        );
+
+        // 3. Check if user is authenticated
+        const hasSession = await authClient.checkSSOSession();
+        if (hasSession) {
+          const clerkUser = authClient.getSSOUser();
+          setUser(clerkUser);
+
+          // 4. Sync user to Supabase
+          await authClient.connectClerkUserToSupabase('users');
+
+          // 5. Get user data from Supabase
+          const data = await authClient.getCurrentUserFromSupabase('users');
+          setUserData(data);
+
+          // 6. Use Supabase for queries
+          const { data: posts } = await supabase
+            .from('posts')
+            .select('*')
+            .eq('user_id', data.clerk_id);
+        }
+      } catch (error) {
+        console.error('Initialization failed:', error);
+      }
+    };
+
+    init();
+  }, []);
+
+  return (
+    <div>
+      {user && (
+        <div>
+          <h1>Welcome, {user.firstName}!</h1>
+          <p>Email: {userData?.email}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+```
+
+### Supabase Database Schema Example
+
+Create a `users` table in Supabase:
+
+```sql
+CREATE TABLE users (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  clerk_id TEXT UNIQUE NOT NULL,
+  email TEXT,
+  first_name TEXT,
+  last_name TEXT,
+  image_url TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX idx_users_clerk_id ON users(clerk_id);
+```
+
 ## Requirements
 
 - **Clerk Account**: You need a Clerk account and publishable key
+- **Supabase Account**: You need a Supabase project with URL and anonymous key
 - **Next.js**: Version 13.0.0 or higher
 - **SSO Setup**: Configure SSO providers in your Clerk dashboard
 
-## Setup Clerk for SSO
+## Setup
+
+### Clerk Setup
 
 1. Go to [Clerk Dashboard](https://dashboard.clerk.com)
 2. Navigate to **User & Authentication** → **Social Connections**
 3. Enable your desired SSO providers (Google, Microsoft, etc.)
 4. Configure redirect URLs
 5. Copy your publishable key
+
+### Supabase Setup
+
+1. Go to [Supabase Dashboard](https://supabase.com/dashboard)
+2. Create a new project or use existing one
+3. Go to **Settings** → **API**
+4. Copy your **Project URL** and **anon/public key**
+5. Create a `users` table (see schema example above)
+
+## Environment Variables
+
+```env
+# Clerk
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
+
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+# Optional
+NEXT_PUBLIC_APP_ENV=dev
+```
 
 ## License
 

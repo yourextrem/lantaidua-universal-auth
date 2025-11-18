@@ -42,3 +42,19 @@ export interface SSOSignInOptions {
   additionalScopes?: string[];
 }
 
+export interface SupabaseOptions {
+  persistSession?: boolean;
+  autoRefreshToken?: boolean;
+  detectSessionInUrl?: boolean;
+  clientOptions?: any;
+}
+
+export interface UniversalAuthWithSupabase extends UniversalAuth {
+  // Supabase Methods
+  createSupabaseClient: (supabaseUrl: string, supabaseAnonKey: string, options?: SupabaseOptions) => any;
+  connectClerkUserToSupabase: (tableName?: string) => Promise<void>;
+  getCurrentUserFromSupabase: (tableName?: string) => Promise<any | null>;
+  getUserFromSupabase: (clerkUserId: string, tableName?: string) => Promise<any | null>;
+  supabaseInitialized: boolean;
+}
+
