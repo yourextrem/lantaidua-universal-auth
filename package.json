@@ -21,7 +21,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourextrem/lantaidua-universal-auth.git"
+    "url": "git+https://github.com/yourextrem/lantaidua-universal-auth.git"
   },
   "homepage": "https://github.com/yourextrem/lantaidua-universal-auth#readme",
   "bugs": {
