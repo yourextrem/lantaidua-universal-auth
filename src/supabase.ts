@@ -205,8 +205,31 @@ export function enableAutoSync(tableName: string = 'users'): void {
     // Listen to storage events (for cross-tab sync)
     window.addEventListener('storage', handleStorageChange);
     
-    // Listen to focus events (when user comes back to tab)
+    // Listen to focus events (when user comes back from redirect)
     window.addEventListener('focus', checkAndSync);
+    
+    // Listen to visibility change (when tab becomes visible after redirect)
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) {
+        // Tab is visible, check and sync
+        checkAndSync();
+      }
+    });
+
+    // Check immediately when page loads (important for SSO redirects)
+    if (document.readyState === 'complete') {
+      // Page already loaded, check immediately
+      setTimeout(checkAndSync, 500);
+    } else {
+      // Wait for page to load
+      window.addEventListener('load', () => {
+        setTimeout(checkAndSync, 500);
+      });
+    }
+
+    // Also check after a short delay (for SSO redirects)
+    setTimeout(checkAndSync, 1000);
+    setTimeout(checkAndSync, 3000);
   }
 }
 
@@ -224,6 +247,8 @@ export function disableAutoSync(): void {
   if (typeof window !== 'undefined') {
     window.removeEventListener('storage', handleStorageChange);
     window.removeEventListener('focus', checkAndSync);
+    document.removeEventListener('visibilitychange', checkAndSync);
+    window.removeEventListener('load', checkAndSync);
   }
   
   lastSyncedUserId = null;
@@ -245,7 +270,13 @@ async function checkAndSync(): Promise<void> {
   }
 
   try {
+    // Force reload Clerk to ensure we have the latest user data
+    // This is important after SSO redirects
     await clerk.load();
+    
+    // Wait a bit for Clerk to fully initialize user
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
     const user = clerk.user;
 
     if (user) {
@@ -257,7 +288,7 @@ async function checkAndSync(): Promise<void> {
           await connectClerkUserToSupabase(autoSyncTableName);
           lastSyncedUserId = currentUserId;
           if (typeof window !== 'undefined' && window.console) {
-            console.log('✅ Auto-synced user to Supabase');
+            console.log('✅ Auto-synced user to Supabase:', currentUserId);
           }
         } catch (error) {
           if (typeof window !== 'undefined' && window.console) {
@@ -271,6 +302,10 @@ async function checkAndSync(): Promise<void> {
     }
   } catch (error) {
     // Silently fail - user might not be logged in yet
+    // But log in development
+    if (typeof window !== 'undefined' && window.console && process.env.NODE_ENV === 'development') {
+      console.debug('Auto-sync check failed (user might not be logged in):', error);
+    }
   }
 }
 

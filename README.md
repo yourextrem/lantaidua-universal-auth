@@ -547,6 +547,8 @@ CREATE INDEX idx_users_clerk_id ON users(clerk_id);
 
 ## Environment Variables
 
+### Basic Setup (Single Supabase)
+
 ```env
 # Clerk
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
@@ -558,6 +560,26 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 # Optional
 NEXT_PUBLIC_APP_ENV=dev
 ```
+
+### Multiple Supabase Instances
+
+If you have separate Supabase instances (e.g., Auth Supabase for user sync, Learning Supabase for app data):
+
+```env
+# Clerk Authentication
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key
+CLERK_SECRET_KEY=your_clerk_secret_key
+
+# Auth Supabase (for Clerk user sync)
+NEXT_PUBLIC_AUTH_SUPABASE_URL=your_auth_supabase_url
+NEXT_PUBLIC_AUTH_SUPABASE_ANON_KEY=your_auth_supabase_anon_key
+
+# Learning Supabase (for your app data)
+NEXT_PUBLIC_SUPABASE_URL=your_learning_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_learning_supabase_anon_key
+```
+
+**Note:** You can use any environment variable names! The package accepts the URL and key directly, so name them however you prefer. See [MULTIPLE_SUPABASE.md](./MULTIPLE_SUPABASE.md) for details.
 
 ## License
 
