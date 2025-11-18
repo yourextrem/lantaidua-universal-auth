@@ -15,6 +15,9 @@ import {
   getCurrentUserFromSupabase,
   getUserFromSupabase,
   getSupabaseInstance,
+  enableAutoSync,
+  disableAutoSync,
+  getAutoSyncStatus,
 } from './supabase';
 
 /**
@@ -25,10 +28,25 @@ export const authClient: UniversalAuthWithSupabase = {
   getEnvironment,
   authClientInitialized: false,
   supabaseInitialized: false,
+  autoSyncEnabled: false,
   createAuthClient: async (publishableKey: string, options?: ClerkOptions) => {
     await createAuthClient(publishableKey, options);
     // Update the initialized flag
     (authClient as any).authClientInitialized = true;
+    
+    // Store auto-sync preference if configured
+    if (options?.autoSyncToSupabase) {
+      (authClient as any).__autoSyncRequested = true;
+      (authClient as any).__autoSyncTableName = options.supabaseTableName || 'users';
+      
+      // If Supabase is already initialized, enable auto-sync immediately
+      const supabase = getSupabaseInstance();
+      if (supabase) {
+        enableAutoSync(options.supabaseTableName || 'users');
+        (authClient as any).autoSyncEnabled = true;
+        (authClient as any).__autoSyncRequested = false;
+      }
+    }
   },
   // SSO Methods
   signInWithSSO,
@@ -40,11 +58,29 @@ export const authClient: UniversalAuthWithSupabase = {
   createSupabaseClient: (supabaseUrl: string, supabaseAnonKey: string, options?: any) => {
     const client = createSupabaseClient(supabaseUrl, supabaseAnonKey, options);
     (authClient as any).supabaseInitialized = true;
+    
+    // Enable auto-sync if it was requested in createAuthClient options
+    // Check if autoSync was enabled in createAuthClient
+    if ((authClient as any).__autoSyncRequested) {
+      const tableName = (authClient as any).__autoSyncTableName || 'users';
+      enableAutoSync(tableName);
+      (authClient as any).autoSyncEnabled = true;
+      (authClient as any).__autoSyncRequested = false;
+    }
+    
     return client;
   },
   connectClerkUserToSupabase,
   getCurrentUserFromSupabase,
   getUserFromSupabase,
+  enableAutoSync: (tableName?: string) => {
+    enableAutoSync(tableName);
+    (authClient as any).autoSyncEnabled = true;
+  },
+  disableAutoSync: () => {
+    disableAutoSync();
+    (authClient as any).autoSyncEnabled = false;
+  },
 };
 
 // Export types
@@ -81,5 +117,8 @@ export {
   connectClerkUserToSupabase,
   getCurrentUserFromSupabase,
   getUserFromSupabase,
+  enableAutoSync,
+  disableAutoSync,
+  getAutoSyncStatus,
 } from './supabase';
 

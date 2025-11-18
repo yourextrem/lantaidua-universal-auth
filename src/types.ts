@@ -33,6 +33,9 @@ export interface ClerkOptions {
   ssoEnabled?: boolean;
   ssoDomain?: string;
   ssoProviders?: SSOProvider[];
+  // Auto-sync Configuration
+  autoSyncToSupabase?: boolean;
+  supabaseTableName?: string;
 }
 
 export interface SSOSignInOptions {
@@ -55,6 +58,9 @@ export interface UniversalAuthWithSupabase extends UniversalAuth {
   connectClerkUserToSupabase: (tableName?: string) => Promise<void>;
   getCurrentUserFromSupabase: (tableName?: string) => Promise<any | null>;
   getUserFromSupabase: (clerkUserId: string, tableName?: string) => Promise<any | null>;
+  enableAutoSync: (tableName?: string) => void;
+  disableAutoSync: () => void;
   supabaseInitialized: boolean;
+  autoSyncEnabled: boolean;
 }
 

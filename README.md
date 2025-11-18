@@ -37,10 +37,20 @@ const user = authClient.getSSOUser();
 await authClient.signOutSSO();
 ```
 
-### 2. Database Integration (Supabase)
+### 2. Database Integration (Supabase) with Auto-Sync
 
 ```typescript
 import { authClient } from 'lantaidua-universal-auth';
+
+// Initialize Clerk with auto-sync enabled
+await authClient.createAuthClient(
+  process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY!,
+  {
+    ssoEnabled: true,
+    autoSyncToSupabase: true, // ✅ Enable auto-sync!
+    supabaseTableName: 'users', // Optional: table name (default: 'users')
+  }
+);
 
 // Initialize Supabase client
 const supabase = authClient.createSupabaseClient(
@@ -48,8 +58,8 @@ const supabase = authClient.createSupabaseClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-// Connect Clerk user to Supabase database
-await authClient.connectClerkUserToSupabase('users');
+// ✅ That's it! User will auto-sync to Supabase when they login
+// No need to manually call connectClerkUserToSupabase()!
 
 // Get current user from Supabase
 const userData = await authClient.getCurrentUserFromSupabase('users');
@@ -325,7 +335,7 @@ const supabase = authClient.createSupabaseClient(
 Syncs Clerk user data to Supabase database. Creates or updates user record.
 
 ```typescript
-// After user signs in with Clerk
+// Manual sync (if auto-sync is disabled)
 await authClient.connectClerkUserToSupabase('users');
 ```
 
@@ -336,6 +346,29 @@ This will create/update a user record with:
 - `last_name` - User last name
 - `image_url` - User profile image
 - `updated_at` - Last update timestamp
+
+#### `authClient.enableAutoSync(tableName?)`
+
+Enables automatic syncing from Clerk to Supabase. User data will be synced automatically whenever user logs in.
+
+```typescript
+// Enable auto-sync
+authClient.enableAutoSync('users');
+
+// Or enable via createAuthClient options
+await authClient.createAuthClient(publishableKey, {
+  autoSyncToSupabase: true,
+  supabaseTableName: 'users',
+});
+```
+
+#### `authClient.disableAutoSync()`
+
+Disables automatic syncing.
+
+```typescript
+authClient.disableAutoSync();
+```
 
 #### `authClient.getCurrentUserFromSupabase(tableName?)`
 
@@ -353,7 +386,7 @@ Gets user data from Supabase by Clerk user ID.
 const userData = await authClient.getUserFromSupabase('user_abc123', 'users');
 ```
 
-### Complete Example: Clerk + Supabase
+### Complete Example: Clerk + Supabase with Auto-Sync
 
 ```typescript
 'use client';
@@ -368,10 +401,14 @@ export default function Dashboard() {
   useEffect(() => {
     const init = async () => {
       try {
-        // 1. Initialize Clerk
+        // 1. Initialize Clerk with auto-sync enabled
         await authClient.createAuthClient(
           process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY!,
-          { ssoEnabled: true }
+          {
+            ssoEnabled: true,
+            autoSyncToSupabase: true, // ✅ Enable auto-sync!
+            supabaseTableName: 'users',
+          }
         );
 
         // 2. Initialize Supabase
@@ -386,18 +423,23 @@ export default function Dashboard() {
           const clerkUser = authClient.getSSOUser();
           setUser(clerkUser);
 
-          // 4. Sync user to Supabase
-          await authClient.connectClerkUserToSupabase('users');
+          // ✅ Auto-sync is enabled, so user data is already syncing!
+          // No need to manually call connectClerkUserToSupabase()
 
-          // 5. Get user data from Supabase
-          const data = await authClient.getCurrentUserFromSupabase('users');
-          setUserData(data);
+          // 4. Get user data from Supabase (after auto-sync)
+          // Wait a moment for auto-sync to complete
+          setTimeout(async () => {
+            const data = await authClient.getCurrentUserFromSupabase('users');
+            setUserData(data);
 
-          // 6. Use Supabase for queries
-          const { data: posts } = await supabase
-            .from('posts')
-            .select('*')
-            .eq('user_id', data.clerk_id);
+            // 5. Use Supabase for queries
+            if (data) {
+              const { data: posts } = await supabase
+                .from('posts')
+                .select('*')
+                .eq('user_id', data.clerk_id);
+            }
+          }, 1000);
         }
       } catch (error) {
         console.error('Initialization failed:', error);
@@ -412,11 +454,50 @@ export default function Dashboard() {
       {user && (
         <div>
           <h1>Welcome, {user.firstName}!</h1>
-          <p>Email: {userData?.email}</p>
+          <p>Email: {userData?.email || 'Syncing...'}</p>
+          <p>Auto-sync: {authClient.autoSyncEnabled ? '✅ Enabled' : '❌ Disabled'}</p>
         </div>
       )}
     </div>
   );
+}
+```
+
+### Manual Sync Example (Without Auto-Sync)
+
+If you prefer manual control:
+
+```typescript
+'use client';
+
+import { useEffect, useState } from 'react';
+import { authClient } from 'lantaidua-universal-auth';
+
+export default function Dashboard() {
+  useEffect(() => {
+    const init = async () => {
+      // Initialize without auto-sync
+      await authClient.createAuthClient(
+        process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY!,
+        { ssoEnabled: true }
+      );
+
+      authClient.createSupabaseClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      );
+
+      // Manually sync when needed
+      const hasSession = await authClient.checkSSOSession();
+      if (hasSession) {
+        await authClient.connectClerkUserToSupabase('users');
+      }
+    };
+
+    init();
+  }, []);
+
+  return <div>Dashboard</div>;
 }
 ```
 
