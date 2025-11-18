@@ -1,0 +1,43 @@
+{
+  "name": "lantaidua-universal-auth",
+  "version": "1.0.0",
+  "description": "A universal authentication wrapper for Clerk in Next.js applications",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "auth",
+    "clerk",
+    "nextjs",
+    "authentication",
+    "universal",
+    "lantaidua"
+  ],
+  "author": "Nicholas <amirsafruddin99@gmail.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourextrem/lantaidua-universal-auth.git"
+  },
+  "homepage": "https://github.com/yourextrem/lantaidua-universal-auth#readme",
+  "bugs": {
+    "url": "https://github.com/yourextrem/lantaidua-universal-auth/issues"
+  },
+  "dependencies": {
+    "@clerk/clerk-js": "^5.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  },
+  "peerDependencies": {
+    "next": ">=13.0.0"
+  },
+  "files": [
+    "dist"
+  ]
+}
