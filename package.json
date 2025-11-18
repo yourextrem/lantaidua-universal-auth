@@ -1,7 +1,7 @@
 {
   "name": "lantaidua-universal-auth",
   "version": "1.0.1",
-  "description": "A universal authentication wrapper for Clerk in Next.js applications",
+  "description": "A universal Single Sign-On (SSO) authentication wrapper for Clerk in Next.js applications. Simplify SSO implementation with easy-to-use functions for Google, Microsoft, GitHub, and other providers.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
@@ -15,7 +15,14 @@
     "nextjs",
     "authentication",
     "universal",
-    "lantaidua"
+    "lantaidua",
+    "sso",
+    "single-sign-on",
+    "oauth",
+    "saml",
+    "google-auth",
+    "microsoft-auth",
+    "github-auth"
   ],
   "author": "Nicholas <amirsafruddin99@gmail.com>",
   "license": "MIT",
