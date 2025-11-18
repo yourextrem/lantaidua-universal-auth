@@ -5,4 +5,6 @@ dist/
 .env
 .env.local
 *.tsbuildinfo
+dev-app/
+universal-auth-*.tgz
 
